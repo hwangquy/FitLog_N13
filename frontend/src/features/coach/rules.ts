@@ -32,12 +32,12 @@ const round5 = (n: number) => Math.round(n / 5) * 5;
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
 export function analyzeHistory(workouts: Workout[], todayISO: string): Analysis {
-  const past = workouts.filter(w => w.date <= todayISO);
-  const last7 = summarize(past, addDays(todayISO, -6), todayISO);
-  const prev7 = summarize(past, addDays(todayISO, -13), addDays(todayISO, -7));
   const recent = past.filter(w => w.date >= addDays(todayISO, -27)).sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 10);
   const avgMinutes = recent.length ? Math.round(recent.reduce((s, w) => s + w.duration, 0) / recent.length) : null;
   const counts = new Map<WorkoutType, number>();
+  const past = workouts.filter(w => w.date <= todayISO);
+  const last7 = summarize(past, addDays(todayISO, -6), todayISO);
+  const prev7 = summarize(past, addDays(todayISO, -13), addDays(todayISO, -7));
   for (const w of past.filter(x => x.date >= addDays(todayISO, -27))) counts.set(w.type, (counts.get(w.type) ?? 0) + 1);
   const favoriteTypes = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([t]) => t);
   const lastDate = past.reduce<string | null>((m, w) => (m === null || w.date > m ? w.date : m), null);

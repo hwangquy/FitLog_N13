@@ -2,10 +2,9 @@ import React,{useCallback,useEffect,useState} from 'react';
 import {Text,TextInput,View} from 'react-native';
 import {showConfirmDialog} from '../../src/utils/alert';
 import {showError} from '../../src/components/ui/dialogs';
-import {Action,AdminScreen,useAdminColors,Panel,State} from '../../src/components/admin/AdminUI';
+import {Action,AdminScreen,C,Panel,State} from '../../src/components/admin/AdminUI';
 import {adminApi,AdminUser,Paged} from '../../src/services/admin';
 export default function AdminUsers(){
- const C=useAdminColors();
  const [query,setQuery]=useState(''),[search,setSearch]=useState(''),[page,setPage]=useState(0);
  const [data,setData]=useState<Paged<AdminUser>|null>(null),[busy,setBusy]=useState(true),[error,setError]=useState<string|null>(null);
  const load=useCallback(async()=>{setBusy(true);setError(null);try{setData(await adminApi.users(page,search));}catch(e){setError(e instanceof Error?e.message:'Lỗi tải người dùng');}finally{setBusy(false);}},[page,search]);

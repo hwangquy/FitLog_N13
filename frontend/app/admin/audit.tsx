@@ -1,9 +1,8 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {Text,View} from 'react-native';
-import {Action,AdminScreen,useAdminColors,Panel,State} from '../../src/components/admin/AdminUI';
+import {Action,AdminScreen,C,Panel,State} from '../../src/components/admin/AdminUI';
 import {adminApi,AuditLog,Paged} from '../../src/services/admin';
 export default function AdminAudit(){
- const C=useAdminColors();
  const [page,setPage]=useState(0),[data,setData]=useState<Paged<AuditLog>|null>(null),[error,setError]=useState<string|null>(null),[busy,setBusy]=useState(true);
  const load=useCallback(async()=>{setBusy(true);setError(null);try{setData(await adminApi.audit(page));}catch(e){setError(e instanceof Error?e.message:'Lỗi tải nhật ký');}finally{setBusy(false);}},[page]);
  useEffect(()=>{void load();},[load]);

@@ -42,10 +42,10 @@ export function createHttpClient(options: HttpClientOptions): HttpClient {
   const base = options.baseUrl.replace(/\/+$/, '');
 
   async function send<T>(method: string, path: string, body?: unknown): Promise<HttpResponse<T>> {
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     const doFetch = options.fetchImpl ?? fetch;
     const token = options.getToken ? await options.getToken() : null;
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
     let res: Response;
     try {
       res = await doFetch(`${base}${path}`, {

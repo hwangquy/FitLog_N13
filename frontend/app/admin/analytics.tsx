@@ -1,9 +1,8 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {Text,View} from 'react-native';
-import {Action,AdminScreen,Bars,useAdminColors,Kpi,Panel,State} from '../../src/components/admin/AdminUI';
+import {Action,AdminScreen,Bars,C,Kpi,Panel,State} from '../../src/components/admin/AdminUI';
 import {adminApi,TrackingSummary} from '../../src/services/admin';
 export default function AdminAnalytics(){
- const C=useAdminColors();
  const [days,setDays]=useState(7),[data,setData]=useState<TrackingSummary|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState<string|null>(null);
  const load=useCallback(async()=>{setLoading(true);setError(null);try{setData(await adminApi.tracking(days));}catch(e){setError(e instanceof Error?e.message:'Lỗi tải tracking');}finally{setLoading(false);}},[days]);
  useEffect(()=>{void load();},[load]);

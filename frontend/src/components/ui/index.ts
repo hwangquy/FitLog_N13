@@ -9,4 +9,3 @@ export * from './SectionTitle';
 export * from './StatCard';
 export * from './StateViews';
 export * from './primitives';
-export * from './ThemeSwitcher';
