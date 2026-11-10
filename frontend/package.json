@@ -32,6 +32,7 @@
     "expo-location": "~58.0.19",
     "expo-notifications": "~58.1.6",
     "expo-router": "~58.0.27",
+    "expo-secure-store": "~58.0.2",
     "expo-status-bar": "~58.0.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
@@ -44,10 +45,10 @@
     "react-native-web": "^0.21.0",
     "react-native-worklets": "0.13.0",
     "react-redux": "^9.2.0",
-    "tamagui": "^1.125.0",
-    "expo-secure-store": "~58.0.2"
+    "tamagui": "^1.125.0"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@types/react": "~19.3.0",
     "typescript": "~6.0.3"
   }

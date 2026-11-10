@@ -1,16 +1,6 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "types": ["node"]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules",
-    "frontend/tests",
-    "server",
-    "scripts"
-  ]
+  "extends": "expo/tsconfig.base"
 }
