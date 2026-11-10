@@ -1,15 +1,7 @@
-import { Pressable, Text } from "react-native";
-import { useAppTheme } from "../../hooks/useAppTheme";
+import { Pressable, Text } from 'react-native';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
-export function Chip({
-  label,
-  selected,
-  onPress,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
+export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const { colors } = useAppTheme();
   return (
     <Pressable
@@ -22,21 +14,13 @@ export function Chip({
         paddingHorizontal: 14,
         borderRadius: 19,
         borderWidth: 1,
-        alignItems: "center",
-        justifyContent: "center",
+        alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: selected ? colors.brand : colors.panel,
-        borderColor: selected ? colors.brand : colors.borderColor,
+        borderColor: selected ? colors.brand : colors.borderColor
       }}
     >
-      <Text
-        style={{
-          color: selected ? colors.brandText : colors.color,
-          fontWeight: selected ? "700" : "500",
-          fontSize: 13,
-        }}
-      >
-        {label}
-      </Text>
+      <Text style={{ color: selected ? colors.brandText : colors.color, fontWeight: selected ? '700' : '500', fontSize: 13 }}>{label}</Text>
     </Pressable>
   );
 }
