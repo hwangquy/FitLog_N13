@@ -1,1 +1,14 @@
-node_modules
+node_modules/
+.expo/
+.dist/
+.env
+.env.*
+!.env.example
+expo-env.d.ts
+.env.compose
+backend/target/
+backend/private-uploads/
+backend/.env*
+!backend/.env.example
+*.log
+
