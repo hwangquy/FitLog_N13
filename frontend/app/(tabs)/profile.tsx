@@ -655,7 +655,7 @@ export default function ProfileScreen() {
       <TrackingConsentCard />
 
       {/* 8. Kết nối máy chủ & Hệ thống */}
-      <Card>
+      {/* <Card>
         <SectionTitle title="Kết nối máy chủ" />
         <AppText tone="muted" size="sm" selectable>
           API: {API_BASE_URL}
@@ -677,7 +677,7 @@ export default function ProfileScreen() {
             {check.text}
           </AppText>
         ) : null}
-      </Card>
+      </Card> */}
 
       {/* 9. Nút Đăng xuất */}
       <Card style={{ marginTop: 4 }}>
