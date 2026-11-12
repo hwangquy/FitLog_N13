@@ -1,6 +1,7 @@
 export * from './AppButton';
 export * from './AppInput';
 export * from './Chip';
+export * from './DatePickerField';
 export * from './Icon';
 export * from './ProgressBar';
 export * from './Screen';
