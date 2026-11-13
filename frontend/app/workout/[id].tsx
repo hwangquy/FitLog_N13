@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Linking, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 import { RoutePreview } from '../../src/components/workouts/RoutePreview';
 import { PrivateWorkoutImage } from '../../src/components/workouts/PrivateWorkoutImage';
 import { AppButton, AppText, Card, ErrorState, Icon, LoadingState, Screen, ScreenHeader, StatCard, workoutIcon } from '../../src/components/ui';
@@ -100,8 +100,11 @@ export default function WorkoutDetailScreen() {
             </Card>
           ) : null}
 
-          {workout.route && workout.route.length > 1 ? (
-            <Card><AppText weight="bold">Tuyến đường đã ghi</AppText><RoutePreview route={workout.route}/></Card>
+          {(workout.route && workout.route.length > 1) || (Platform.OS !== 'web' && workout.coords) ? (
+            <Card>
+              <AppText weight="bold">{workout.route && workout.route.length > 1 ? 'Tuyến đường đã ghi' : 'Vị trí buổi tập'}</AppText>
+              <RoutePreview route={workout.route ?? []} currentLocation={workout.coords} />
+            </Card>
           ) : null}
 
           {workout.image ? (

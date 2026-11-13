@@ -4,7 +4,13 @@ import type { Coords } from '../../types';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { routeDistanceKm } from '../../features/location/route';
 import { AppText } from '../ui/primitives';
-export function RoutePreview({route}:{route:Coords[]}) {
+export type RoutePreviewProps = {
+  route: Coords[];
+  currentLocation?: Coords;
+  tracking?: boolean;
+};
+
+export function RoutePreview({route}:RoutePreviewProps) {
  const {colors}=useAppTheme();
  if(route.length<2)return <AppText tone="muted" size="sm">Cần ít nhất 2 điểm GPS để hiện tuyến đường.</AppText>;
  const xs=route.map(p=>p.longitude),ys=route.map(p=>p.latitude);

@@ -158,6 +158,7 @@ export default function WorkoutFormScreen() {
       const watch=await Location.watchPositionAsync({accuracy:Location.Accuracy.High,distanceInterval:10,timeInterval:5000},loc=>{
         if(loc.coords.accuracy !== null && loc.coords.accuracy > 60) return;
         const p={latitude:loc.coords.latitude,longitude:loc.coords.longitude};
+        setCoords(p);
         setRoute(prev=>{
           if(prev.length>=1000)return prev;
           if(prev.length && routeDistanceKm([prev[prev.length-1],p])<0.005)return prev;
@@ -244,7 +245,7 @@ export default function WorkoutFormScreen() {
             <AppText tone="muted" size="xs">Chỉ bắt đầu khi bạn bấm nút. Không thu thập GPS khi chạy nền. Có thể tiêu hao pin.</AppText>
             <AppButton label={tracking ? 'Dừng theo dõi tuyến' : 'Bắt đầu theo dõi GPS'} icon={tracking ? 'stop-circle-outline' : 'navigate-outline'}
               variant="secondary" onPress={tracking ? stopRoute : () => void startRoute()} />
-            {route.length > 0 ? <RoutePreview route={route}/> : null}
+            {coords || route.length > 0 ? <RoutePreview route={route} currentLocation={coords} tracking={tracking} /> : null}
             {route.length > 0 && !tracking ? <AppButton label="Xóa tuyến đã ghi" variant="ghost" icon="trash-outline" onPress={() => setRoute([])} /> : null}
           </Card>
 
