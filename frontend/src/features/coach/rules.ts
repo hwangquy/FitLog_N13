@@ -5,7 +5,7 @@ import { addDays, diffDays } from '../../utils/date';
 import { summarize, weeklySeries } from '../stats/stats';
 
 export type CoachGoal = 'endurance' | 'habit' | 'activity' | 'relax';
-export type CoachLevel = 'beginner' | 'intermediate';
+export type CoachLevel = 'beginner' | 'intermediate' | 'advanced';
 export type CoachPrefs = { goal: CoachGoal; daysPerWeek: number; level: CoachLevel };
 
 export const coachGoalLabel: Record<CoachGoal, string> = {
@@ -14,7 +14,7 @@ export const coachGoalLabel: Record<CoachGoal, string> = {
   activity: 'Tăng vận động',
   relax: 'Thư giãn'
 };
-export const coachLevelLabel: Record<CoachLevel, string> = { beginner: 'Mới bắt đầu', intermediate: 'Trung bình' };
+export const coachLevelLabel: Record<CoachLevel, string> = { beginner: 'Mới bắt đầu', intermediate: 'Trung bình', advanced: 'Nâng cao' };
 
 export type Analysis = {
   hasData: boolean;
@@ -77,7 +77,7 @@ const PATTERN: Record<CoachGoal, Role[]> = {
 
 export function buildPlan(a: Analysis, prefs: CoachPrefs): PlanItem[] {
   const days = clamp(Math.round(prefs.daysPerWeek), 1, 5);
-  const levelBase = prefs.level === 'beginner' ? 20 : 30;
+  const levelBase = prefs.level === 'beginner' ? 20 : prefs.level === 'intermediate' ? 30 : 40;
   let base = a.avgMinutes !== null ? clamp(round5(a.avgMinutes), 15, 60) : levelBase;
   let note = '';
   if (!a.hasData || (a.daysSinceLast !== null && a.daysSinceLast >= 5)) {

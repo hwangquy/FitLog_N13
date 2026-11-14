@@ -4,6 +4,7 @@ import { View, type ColorValue } from 'react-native';
 
 import { Icon } from '../../src/components/ui';
 import CoachChatCard from '../../src/components/coach/CoachChatCard';
+import { CoachChatLauncherProvider } from '../../src/components/coach/CoachChatLauncher';
 import type { IconName } from '../../src/components/ui';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 
@@ -33,6 +34,7 @@ export default function TabsLayout() {
   const { colors } = useAppTheme();
 
   return (
+    <CoachChatLauncherProvider>
     <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
@@ -66,7 +68,7 @@ export default function TabsLayout() {
 
       <Tabs.Screen
         name="coach"
-        options={tab('AI Coach', 'sparkles', 'sparkles-outline')}
+        options={tab('Kế hoạch', 'calendar', 'calendar-outline')}
       />
 
       <Tabs.Screen
@@ -76,5 +78,6 @@ export default function TabsLayout() {
     </Tabs>
     <CoachChatCard />
     </View>
+    </CoachChatLauncherProvider>
   );
 }

@@ -1,11 +1,17 @@
 // frontend/src/components/coach/CoachChatCard.tsx
 // Giao diện dành cho người dùng: Gemini trả lời bằng lời, còn action JSON chỉ dùng nội bộ.
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { router, usePathname } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { coachGoalLabel, coachLevelLabel } from '../../features/coach/rules';
+import { useCoachChatLauncher } from './CoachChatLauncher';
+import { PlanConflictResolver } from './PlanConflictResolver';
+import type { PlanBatchChoice } from '../../services/api';
+import type { WorkoutPlanInput, WorkoutType } from '../../types';
 import {
   ActivityIndicator, Animated, KeyboardAvoidingView, Modal, PanResponder, Platform,
   Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppButton, AppText, Chip, Icon } from '../ui';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { coachChatApi } from '../../services/coachChat';
@@ -16,19 +22,13 @@ import { showConfirmDialog } from '../../utils/alert';
 import { useAppDispatch } from '../../store/hooks';
 import { setAiConsent } from '../../store/settingsSlice';
 
-type ChatTab = 'chat' | 'profile' | 'checkin';
+type ChatTab = 'chat' | 'profile' | 'report';
 type Dict = Record<string, unknown>;
 
 const initialProfile: CoachProfile = {
   goal: 'habit', level: 'beginner', daysPerWeek: 3, minutesPerSession: 40,
   equipment: 'Không có', preferences: ''
 };
-const quickPrompts = [
-  'Tạo lịch tập 3 buổi vào thứ 2, 4, 6 tuần tới, mỗi buổi 40 phút',
-  'Hôm nay tôi nên tập bài gì?',
-  'Phân tích tiến độ tập 7 ngày vừa qua',
-  'Gợi ý bài tập ngực tại nhà không cần tạ'
-];
 
 function objectOf(v: unknown): Dict {
   return v !== null && typeof v === 'object' && !Array.isArray(v) ? v as Dict : {};
@@ -149,6 +149,8 @@ function FloatingAiButton({ onOpen }: { onOpen: () => void }) {
 export default function CoachChatCard() {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
+  const pathname = usePathname();
+  const { request } = useCoachChatLauncher();
   const { height: screenHeight } = useWindowDimensions();
   const dispatch = useAppDispatch();
   const scroll = useRef<ScrollView>(null);
@@ -158,16 +160,38 @@ export default function CoachChatCard() {
   const [sessions, setSessions] = useState<{ id: string; title: string }[]>([]);
   const [messages, setMessages] = useState<AiMessage[]>([]);
   const [actions, setActions] = useState<AiAction[]>([]);
+  const [resolvingAction, setResolvingAction] = useState<AiAction | null>(null);
   const [text, setText] = useState('');
   const [sendingText, setSendingText] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [profile, setProfile] = useState<CoachProfile>(initialProfile);
-  const [fatigue, setFatigue] = useState(2);
-  const [soreness, setSoreness] = useState(1);
   const [report, setReport] = useState('');
-  const [checkinSaved, setCheckinSaved] = useState(false);
   const [consent, setConsent] = useState(false);
+  const quickPrompts = useMemo(() => [
+    `Lập lịch ${profile.daysPerWeek} buổi/tuần, mỗi buổi ${profile.minutesPerSession} phút cho mục tiêu ${coachGoalLabel[profile.goal]}.`,
+    `Tư vấn bài tập phù hợp với dụng cụ: ${profile.equipment}.`,
+    'Phân tích lịch sử tập luyện gần đây và gợi ý cải thiện.',
+    'Tôi muốn điều chỉnh kế hoạch tuần này, hãy kiểm tra lịch hiện tại.',
+  ], [profile]);
+
+  // Mở chat từ nút "Hỏi AI về kế hoạch này"; chỉ điền nháp, chưa tự gửi.
+  useEffect(() => {
+    if (!request) return;
+    setTab('chat');
+    setText(request.draft);
+    setOpen(true);
+  }, [request]);
+
+  // Khi người dùng vừa lưu hồ sơ ở trang Kế hoạch, mở chat sẽ đọc dữ liệu mới từ DB.
+  useEffect(() => {
+    if (!open) return;
+    void Promise.all([coachChatApi.profile(), coachChatApi.consent()]).then(([storedProfile, storedConsent]) => {
+      setProfile(storedProfile);
+      setConsent(storedConsent.enabled);
+      dispatch(setAiConsent(storedConsent.enabled));
+    }).catch(e => showError('Không cập nhật được hồ sơ AI', errorMessage(e)));
+  }, [open, dispatch]);
 
   const refreshSessions = async () => setSessions(await coachChatApi.sessions());
   const load = async (id: string) => {
@@ -246,8 +270,36 @@ export default function CoachChatCard() {
       })();
     }, 'Xóa');
   };
+  const actionPlans = (action: AiAction): WorkoutPlanInput[] => {
+    const raw = objectOf(action.payload).items;
+    if (!Array.isArray(raw)) return [];
+    return raw.map(x => {
+      const p = objectOf(x);
+      return {
+        date: stringOf(p.date), title: stringOf(p.title),
+        type: stringOf(p.type) as WorkoutType, minutes: numberOf(p.minutes) ?? 0,
+        intensity: stringOf(p.intensity) as 'nhẹ' | 'vừa', note: stringOf(p.note)
+      };
+    });
+  };
+
+  const applyActionPlan = async (choices: PlanBatchChoice[]) => {
+    if (!resolvingAction || busy) return;
+    setBusy(true);
+    try {
+      await coachChatApi.apply(resolvingAction.id, choices);
+      if (sessionId) await load(sessionId);
+      setNotice('Lịch đã được cập nhật theo các lựa chọn bạn xác nhận.');
+      setResolvingAction(null);
+    } finally { setBusy(false); }
+  };
+
   const processAction = async (action: AiAction, accept: boolean) => {
     if (busy) return;
+    if (accept && action.type === 'CREATE_PLAN') {
+      setResolvingAction(action);
+      return;
+    }
     setBusy(true);
     try {
       if (accept) await coachChatApi.apply(action.id);
@@ -257,25 +309,6 @@ export default function CoachChatCard() {
     } catch (e) { showError('Không xử lý được đề xuất', errorMessage(e)); }
     finally { setBusy(false); }
   };
-  const saveProfile = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      setProfile(await coachChatApi.updateProfile(profile));
-      setNotice('Đã lưu hồ sơ tập luyện. AI sẽ dùng thông tin này để tư vấn tốt hơn.');
-      setTab('chat');
-    } catch (e) { showError('Không lưu được hồ sơ', errorMessage(e)); }
-    finally { setBusy(false); }
-  };
-  const saveCheckin = async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await coachChatApi.checkin(fatigue, soreness);
-      setCheckinSaved(true);
-    } catch (e) { showError('Không lưu được tình trạng thể lực', errorMessage(e)); }
-    finally { setBusy(false); }
-  };
   const makeReport = async () => {
     if (busy) return;
     setBusy(true);
@@ -283,13 +316,6 @@ export default function CoachChatCard() {
     catch (e) { showError('Không tạo được báo cáo', errorMessage(e)); }
     finally { setBusy(false); }
   };
-
-  const field = (value: string, onChangeText: (v: string) => void, placeholder: string, numeric = false) => (
-    <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder}
-      placeholderTextColor={colors.muted} keyboardType={numeric ? 'number-pad' : 'default'}
-      style={{ color: colors.color, backgroundColor: colors.panel, borderColor: colors.borderColor,
-        borderWidth: 1, borderRadius: 12, minHeight: 44, paddingHorizontal: 12, paddingVertical: 10 }} />
-  );
 
   const renderAction = (action: AiAction) => {
     const payload = objectOf(action.payload);
@@ -457,108 +483,59 @@ export default function CoachChatCard() {
   );
 
   const renderProfile = () => (
-    <ScrollView contentContainerStyle={{ padding: 18, gap: 12 }} keyboardShouldPersistTaps="handled">
-      <AppText size="lg" weight="bold">Hồ sơ luyện tập của bạn</AppText>
-      <AppText tone="muted" size="sm">AI sử dụng các thông tin này để cá nhân hóa câu trả lời.</AppText>
-      <AppText weight="semi">Mục tiêu</AppText>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {([
-          ['habit', 'Duy trì thói quen'], ['endurance', 'Tăng sức bền'],
-          ['activity', 'Vận động nhiều hơn'], ['relax', 'Thư giãn']
-        ] as const).map(([value, label]) =>
-          <Chip key={value} label={label} selected={profile.goal === value}
-            onPress={() => setProfile(p => ({ ...p, goal: value }))} />)}
+    <ScrollView contentContainerStyle={{ padding: 18, gap: 12 }}>
+      <AppText size="lg" weight="bold">Hồ sơ luyện tập</AppText>
+      <AppText tone="muted" size="sm">Hồ sơ lấy trực tiếp từ FitLog. Bạn chỉ chỉnh tại trang Kế hoạch.</AppText>
+      <View style={{ padding: 14, borderWidth: 1, borderColor: colors.borderColor, borderRadius: 14, gap: 8 }}>
+        <AppText size="sm">Mục tiêu: <AppText weight="semi">{coachGoalLabel[profile.goal]}</AppText></AppText>
+        <AppText size="sm">Trình độ: <AppText weight="semi">{coachLevelLabel[profile.level]}</AppText></AppText>
+        <AppText size="sm">Tần suất: <AppText weight="semi">{profile.daysPerWeek} buổi/tuần</AppText></AppText>
+        <AppText size="sm">Thời lượng: <AppText weight="semi">{profile.minutesPerSession} phút/buổi</AppText></AppText>
+        <AppText size="sm">Dụng cụ: <AppText weight="semi">{profile.equipment}</AppText></AppText>
+        {profile.preferences ? <AppText size="sm">Lưu ý: {profile.preferences}</AppText> : null}
       </View>
-      <AppText weight="semi">Trình độ</AppText>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {([['beginner', 'Mới bắt đầu'], ['intermediate', 'Trung bình']] as const).map(([value, label]) =>
-          <Chip key={value} label={label} selected={profile.level === value}
-            onPress={() => setProfile(p => ({ ...p, level: value }))} />)}
-      </View>
-      <AppText size="sm">Số buổi tập mỗi tuần (1–5)</AppText>
-      {field(String(profile.daysPerWeek), v => setProfile(p => ({ ...p, daysPerWeek: Number(v) })), '3', true)}
-      <AppText size="sm">Thời lượng mỗi buổi, phút (15–90)</AppText>
-      {field(String(profile.minutesPerSession), v => setProfile(p => ({ ...p, minutesPerSession: Number(v) })), '40', true)}
-      <AppText size="sm">Dụng cụ tập luyện</AppText>
-      {field(profile.equipment, v => setProfile(p => ({ ...p, equipment: v })), 'Tạ, thảm yoga...')}
-      <AppText size="sm">Sở thích, lưu ý khi tập</AppText>
-      {field(profile.preferences, v => setProfile(p => ({ ...p, preferences: v })), 'Thích cardio, không tập tối...')}
-      <AppButton label="Lưu hồ sơ" icon="save-outline" disabled={busy} loading={busy}
-        onPress={() => void saveProfile()} />
-      {consent ? <AppButton label="Rút lại đồng ý chia sẻ với AI" variant="ghost" size="sm"
-        onPress={() => { void coachChatApi.setConsent(false).then(() => {
-          setConsent(false); dispatch(setAiConsent(false));
-        }).catch(e => showError('Lỗi', errorMessage(e))); }} /> : null}
+      <AppButton label="Chỉnh sửa trong Kế hoạch" icon="create-outline" onPress={() => {
+        setOpen(false);
+        router.push('/coach');
+      }} />
     </ScrollView>
   );
 
-  const renderCheckin = () => (
+  const renderReport = () => (
     <ScrollView contentContainerStyle={{ padding: 18, gap: 14 }}>
-      <AppText size="lg" weight="bold">Hôm nay bạn cảm thấy thế nào?</AppText>
-      <AppText size="sm" tone="muted">Ghi nhận để AI đưa ra gợi ý phục hồi phù hợp.</AppText>
-      <AppText weight="semi">Mức mệt mỏi: {fatigue}/5</AppText>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {[1, 2, 3, 4, 5].map(n => <Chip key={n} label={`${n}`} selected={fatigue === n}
-          onPress={() => { setFatigue(n); setCheckinSaved(false); }} />)}
-      </View>
-      <AppText weight="semi">Mức đau mỏi cơ: {soreness}/5</AppText>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {[1, 2, 3, 4, 5].map(n => <Chip key={n} label={`${n}`} selected={soreness === n}
-          onPress={() => { setSoreness(n); setCheckinSaved(false); }} />)}
-      </View>
-      <AppButton label="Lưu tình trạng hôm nay" variant="secondary" disabled={busy}
-        onPress={() => void saveCheckin()} />
-      {checkinSaved ? <AppText tone="success">Đã ghi nhận tình trạng hôm nay! FitLog AI sẽ sử dụng thông tin này để tư vấn lịch tập phù hợp hơn.</AppText> : null}
-      <View style={{ borderTopWidth: 1, borderTopColor: colors.borderColor, paddingTop: 16, gap: 12 }}>
-        <AppText size="lg" weight="bold">Báo cáo luyện tập tuần này</AppText>
-        <AppButton label="Xem báo cáo từ AI" variant="secondary" disabled={busy}
-          onPress={() => withConsent(makeReport)} />
-        {report ? <View style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12 }}>
-          <AppText>{report}</AppText>
-        </View> : null}
-      </View>
+      <AppText size="lg" weight="bold">Báo cáo từ AI</AppText>
+      <AppText size="sm" tone="muted">Mức mệt mỏi và đau cơ được ghi tại trang Kế hoạch, không nhập lại ở đây.</AppText>
+      <AppButton label="Đến trang Kế hoạch" variant="secondary" icon="calendar-outline" onPress={() => {
+        setOpen(false);
+        router.push('/coach');
+      }} />
+      <AppButton label="Xem báo cáo từ AI" variant="secondary" disabled={busy}
+        onPress={() => withConsent(makeReport)} />
+      {report ? <View style={{ backgroundColor: colors.background, padding: 14, borderRadius: 12 }}>
+        <AppText>{report}</AppText>
+      </View> : null}
+      {consent ? <AppButton label="Rút lại đồng ý chia sẻ với AI" variant="ghost" size="sm"
+        onPress={() => { void coachChatApi.setConsent(false).then(() => {
+          setConsent(false); dispatch(setAiConsent(false));
+        }).catch(e => showError('Không thay đổi được sự đồng ý', errorMessage(e))); }} /> : null}
     </ScrollView>
   );
 
   return (
     <>
-      <FloatingAiButton onOpen={() => { setTab('chat'); setOpen(true); }} />
+      {/* Trang Kế hoạch có nút "Hỏi AI" riêng; tránh icon nổi che nội dung. */}
+      {pathname !== '/coach' ? <FloatingAiButton onOpen={() => {
+        setTab('chat'); setOpen(true);
+      }} /> : null}
 
-      
-<Modal
-  visible={open}
-  transparent
-  animationType="fade"
-  onRequestClose={() => setOpen(false)}
->
-  <KeyboardAvoidingView
-    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    style={{
-      flex: 1,
-      backgroundColor: 'rgba(10, 15, 33, 0.25)',
-
-      paddingHorizontal: Platform.OS === 'web' ? 18 : 0,
-
-      // Tránh Dynamic Island và thanh trạng thái iPhone
-      paddingTop:
-        Platform.OS === 'web'
-          ? 18
-          : insets.top,
-
-      // Tránh Home Indicator phía dưới
-      paddingBottom:
-        Platform.OS === 'web'
-          ? 85
-          : insets.bottom,
-
-      justifyContent:
-        Platform.OS === 'web' ? 'flex-end' : 'center',
-
-      alignItems:
-        Platform.OS === 'web' ? 'flex-end' : 'stretch',
-    }}
-  >
-
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => { setResolvingAction(null); setOpen(false); }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1, backgroundColor: 'rgba(10, 15, 33, 0.25)',
+            paddingHorizontal: Platform.OS === 'web' ? 18 : 0,
+            paddingTop: Platform.OS === 'web' ? 18 : insets.top,
+            paddingBottom: Platform.OS === 'web' ? 85 : insets.bottom,
+            justifyContent: Platform.OS === 'web' ? 'flex-end' : 'center',
+            alignItems: Platform.OS === 'web' ? 'flex-end' : 'stretch' }}>
           <Pressable accessibilityLabel="Đóng chatbox khi chạm ngoài cửa sổ"
             onPress={() => setOpen(false)} style={StyleSheet.absoluteFill} />
           <View style={{ flex: Platform.OS === 'web' ? undefined : 1,
@@ -584,7 +561,7 @@ export default function CoachChatCard() {
             </View>
             <View style={{ flexDirection: 'row', backgroundColor: colors.panel,
               borderBottomWidth: 1, borderBottomColor: colors.borderColor }}>
-              {([['chat', 'Trò chuyện'], ['profile', 'Hồ sơ'], ['checkin', 'Thể lực & báo cáo']] as const)
+              {([['chat', 'Trò chuyện'], ['profile', 'Hồ sơ'], ['report', 'Báo cáo AI']] as const)
                 .map(([value, label]) => (
                   <Pressable key={value} onPress={() => setTab(value)}
                     accessibilityRole="button" accessibilityState={{ selected: tab === value }}
@@ -595,7 +572,10 @@ export default function CoachChatCard() {
                   </Pressable>
                 ))}
             </View>
-            {tab === 'chat' ? renderChat() : tab === 'profile' ? renderProfile() : renderCheckin()}
+            {tab === 'chat' && resolvingAction ? (
+              <PlanConflictResolver inline visible items={actionPlans(resolvingAction)} source="Gemini AI"
+                onClose={() => setResolvingAction(null)} onApply={applyActionPlan} />
+            ) : tab === 'chat' ? renderChat() : tab === 'profile' ? renderProfile() : renderReport()}
           </View>
         </KeyboardAvoidingView>
       </Modal>

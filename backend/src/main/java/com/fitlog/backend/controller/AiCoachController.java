@@ -82,13 +82,15 @@ public class AiCoachController {
             );
         }
 
-        JsonNode prefs = payload.path("prefs");
+        // Mục tiêu lấy từ chính hồ sơ MariaDB, không tin trạng thái cục bộ Frontend.
+        JsonNode context = data.context(uid);
+        JsonNode prefs = context.path("profile");
         JsonNode history = payload.path("history");
 
         // 3. Kiểm tra dữ liệu đầu vào
         if (!Set.of("habit", "endurance", "activity", "relax")
                 .contains(prefs.path("goal").asText())
-                || !Set.of("beginner", "intermediate")
+                || !Set.of("beginner", "intermediate", "advanced")
                 .contains(prefs.path("level").asText())
                 || prefs.path("daysPerWeek").asInt(0) < 1
                 || prefs.path("daysPerWeek").asInt(0) > 5
@@ -117,6 +119,10 @@ public class AiCoachController {
                 prefs.path("daysPerWeek").asInt()
         );
 
+        cleanPrefs.put("minutesPerSession", prefs.path("minutesPerSession").asInt(40));
+        cleanPrefs.put("equipment", prefs.path("equipment").asText("Không có"));
+        cleanPrefs.put("preferences", prefs.path("preferences").asText(""));
+        safe.set("latestCheckin", context.path("latestCheckin"));
         ObjectNode stats = safe.putObject("history");
 
         for (String f : List.of(
@@ -191,6 +197,11 @@ public class AiCoachController {
             }
         }
 
+        // Thống kê quan trọng lấy từ DB, không phụ thuộc payload có thể bị sửa từ client.
+        stats.put("sessionsLast7", context.path("last7Days").path("sessions").asInt(0));
+        stats.put("minutesLast7", context.path("last7Days").path("minutes").asInt(0));
+        stats.put("sessionsPrev7", context.path("previous7Days").path("sessions").asInt(0));
+
         // 6. Prompt tạo lịch luyện tập
         String instruction = """
                 You are a recreational fitness coach.
@@ -206,6 +217,9 @@ public class AiCoachController {
                 - Each session lasts 15 to 60 minutes.
                 - Recommend rest between intensive sessions.
                 - Beginners should receive gentle workouts.
+                - Use the saved goal, level, minutesPerSession, equipment and latestCheckin.
+                - If fatigue or soreness is at least 4/5, avoid intense workouts; prioritize rest/recovery.
+                - In "summary", explain WHY the schedule fits the user's current progress and condition.
                 - Do not diagnose medical conditions.
                 - Do not invent medical history.
 

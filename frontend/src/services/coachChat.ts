@@ -2,6 +2,7 @@
 import { API_BASE_URL } from '../config/env';
 import { createHttpClient } from './http';
 import { getAccessToken, setAccessToken } from './session';
+import type { PlanBatchChoice } from './api';
 
 const api = createHttpClient({
   baseUrl: API_BASE_URL, timeoutMs: 110000, getToken: getAccessToken,
@@ -14,11 +15,19 @@ export type AiMessage = { id: string; role: 'user' | 'assistant'; content: strin
 export type ChatHistory = { sessionId: string; messages: AiMessage[]; pendingActions: AiAction[] };
 export type CoachProfile = {
   goal: 'habit' | 'endurance' | 'activity' | 'relax';
-  level: 'beginner' | 'intermediate';
+  level: 'beginner' | 'intermediate' | 'advanced';
   daysPerWeek: number; minutesPerSession: number;
   equipment: string; preferences: string;
 };
+export type CoachDashboard = {
+  profile: CoachProfile & { consentEnabled: boolean };
+  last7Days: { sessions: number; minutes: number };
+  previous7Days: { sessions: number; minutes: number };
+  latestCheckin?: { fatigue: number; soreness: number; createdAt: string };
+};
+
 export const coachChatApi = {
+  async dashboard() { return (await api.get<CoachDashboard>('/coach/dashboard')).data; },
   async sessions() {
     return (await api.get<{ id: string; title: string }[]>('/coach/chat/sessions')).data;
   },
@@ -30,8 +39,12 @@ export const coachChatApi = {
     return (await api.post<{ sessionId: string; reply: string; action?: AiAction }>('/coach/chat',
       { text, ...(sessionId ? { sessionId } : {}) })).data;
   },
-  async apply(id: string) {
-    return (await api.post<{ status: string; message: string }>(`/coach/chat/actions/${encodeURIComponent(id)}/apply`, {})).data;
+  async apply(id: string, choices?: PlanBatchChoice[]) {
+    const decisions = choices ? {
+      choices: choices.map(choice => ({ date: choice.plan.date, decision: choice.decision,
+        expectedExistingId: choice.expectedExistingId }))
+    } : {};
+    return (await api.post<{ status: string; message: string }>(`/coach/chat/actions/${encodeURIComponent(id)}/apply`, decisions)).data;
   },
   async cancel(id: string) {
     return (await api.post<{ status: string }>(`/coach/chat/actions/${encodeURIComponent(id)}/cancel`, {})).data;

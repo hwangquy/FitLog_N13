@@ -1,5 +1,8 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
+import { IconFontReadyContext } from '../src/components/ui/Icon';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -142,7 +145,10 @@ function AppShell() {
   </TamaguiProvider>;
 }
 export default function RootLayout() {
-  return <Provider store={store}><GestureHandlerRootView style={{ flex: 1 }}>
+  // Phông icon đóng gói theo @expo/vector-icons; preload một lần cho Expo Go/Web.
+  // Nếu mạng/dev-server lỗi, các icon dùng chung có ký hiệu thay thế, app vẫn chạy.
+  const [iconsLoaded] = useFonts(Ionicons.font);
+  return <IconFontReadyContext.Provider value={iconsLoaded}><Provider store={store}><GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider><AppShell /></SafeAreaProvider>
-  </GestureHandlerRootView></Provider>;
+  </GestureHandlerRootView></Provider></IconFontReadyContext.Provider>;
 }

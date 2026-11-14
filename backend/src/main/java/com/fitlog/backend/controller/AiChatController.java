@@ -53,13 +53,16 @@ public class AiChatController {
  private void requireConsent(String uid){
   if(!data.hasConsent(uid))throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Cần đồng ý gửi dữ liệu cá nhân hóa cho AI trước.");
  }
+ @GetMapping("/dashboard") public JsonNode dashboard(Authentication a){
+  return data.context(uid(a));
+ }
  @GetMapping("/profile") public JsonNode profile(Authentication a){
   return data.context(uid(a)).path("profile");
  }
  @PutMapping("/profile") public JsonNode profile(@Valid @RequestBody ProfileRequest p,Authentication a){
   String uid=uid(a);
   if(!Set.of("habit","endurance","activity","relax").contains(p.goal())||
-     !Set.of("beginner","intermediate").contains(p.level()))
+     !Set.of("beginner","intermediate","advanced").contains(p.level()))
    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Mục tiêu hoặc trình độ không hợp lệ.");
   db.update("INSERT INTO ai_profiles(user_id,goal,level,days_per_week,minutes_per_session,equipment,preferences,updated_at) " +
    "VALUES(?,?,?,?,?,?,?,UTC_TIMESTAMP(6)) ON DUPLICATE KEY UPDATE goal=VALUES(goal),level=VALUES(level),"+
@@ -163,8 +166,8 @@ public class AiChatController {
   }
   return out;
  }
- @PostMapping("/chat/actions/{id}/apply") public JsonNode apply(@PathVariable String id,Authentication a){
-  return actions.apply(uid(a),id);
+ @PostMapping("/chat/actions/{id}/apply") public JsonNode apply(@PathVariable String id,@RequestBody(required=false) PlanBatchService.ChatDecisions decisions,Authentication a){
+  return actions.apply(uid(a),id,decisions);
  }
  @PostMapping("/chat/actions/{id}/cancel") public JsonNode cancel(@PathVariable String id,Authentication a){
   int updated=db.update("UPDATE ai_actions SET status='CANCELLED' WHERE id=? AND user_id=? AND status='PENDING'",id,uid(a));

@@ -95,7 +95,26 @@ export async function pingApi(): Promise<number> {
 }
 
 
+export type PlanBatchChoice = {
+  plan: WorkoutPlanInput;
+  decision: 'CREATE' | 'KEEP' | 'REPLACE';
+  expectedExistingId?: string;
+};
+export type PlanBatchPreview = {
+  rows: { index: number; proposed: WorkoutPlanInput; existing: WorkoutPlan[] }[];
+  conflictDays: number;
+};
+export type PlanBatchResult = {
+  created: number; replaced: number; kept: number; plans: WorkoutPlan[];
+};
+
 export const plannerApi = {
+  async previewBatch(inputs: WorkoutPlanInput[]): Promise<PlanBatchPreview> {
+    return (await http.post<PlanBatchPreview>('/plans/batch/preview', inputs)).data;
+  },
+  async resolveBatch(choices: PlanBatchChoice[]): Promise<PlanBatchResult> {
+    return (await http.post<PlanBatchResult>('/plans/batch/resolve', { choices })).data;
+  },
   async createBatch(inputs: WorkoutPlanInput[]): Promise<WorkoutPlan[]> {
     const r = await http.post<WorkoutPlan[]>('/plans/batch', inputs);
     return r.data;

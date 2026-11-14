@@ -12,9 +12,9 @@ import java.util.*;
 
 @Service
 public class AiActionService {
- private final JdbcTemplate db;private final ObjectMapper json;
+ private final JdbcTemplate db;private final ObjectMapper json;private final PlanBatchService planBatch;
  private static final Set<String> TYPES=Set.of("Gym","Yoga","Chạy bộ","Đi bộ","Đạp xe","Khác");
- public AiActionService(JdbcTemplate db,ObjectMapper json){this.db=db;this.json=json;}
+ public AiActionService(JdbcTemplate db,ObjectMapper json,PlanBatchService planBatch){this.db=db;this.json=json;this.planBatch=planBatch;}
  public record Prepared(String type,ObjectNode payload){}
  private ResponseStatusException bad(){return new ResponseStatusException(HttpStatus.BAD_REQUEST,"Đề xuất AI không hợp lệ.");}
  private String str(JsonNode n,String k,int max){
@@ -59,7 +59,7 @@ public class AiActionService {
  }
  private record Pending(String type,String payload,String status,String sessionId,LocalDateTime createdAt){}
  @Transactional
- public ObjectNode apply(String uid,String id){
+ public ObjectNode apply(String uid,String id,PlanBatchService.ChatDecisions decisions){
   // Khóa người dùng để tránh 2 lần xác nhận cùng lúc tạo lịch chồng chéo.
   db.queryForObject("SELECT id FROM users WHERE id=? FOR UPDATE",String.class,uid);
   Pending pending=db.query("SELECT action_type,payload,status,session_id,created_at FROM ai_actions WHERE id=? AND user_id=? FOR UPDATE",rs->
@@ -72,10 +72,10 @@ public class AiActionService {
    Prepared a=prepare(json.readTree(pending.payload)); // payload đã chuẩn hóa nhưng cần định dạng type
    if(a==null)throw bad();
    switch(a.type){
-    case "CREATE_PLAN" -> createPlans(uid,a.payload.path("items"));
-    case "RESCHEDULE" -> reschedule(uid,a.payload);
-    case "SKIP_PLAN" -> skip(uid,a.payload.path("planId").asText());
-    case "LOG_WORKOUT" -> logWorkout(uid,a.payload);
+    case "CREATE_PLAN" -> createPlansWithChoices(uid,a.payload.path("items"),decisions);
+    case "RESCHEDULE" -> { rejectChoices(decisions); reschedule(uid,a.payload); }
+    case "SKIP_PLAN" -> { rejectChoices(decisions); skip(uid,a.payload.path("planId").asText()); }
+    case "LOG_WORKOUT" -> { rejectChoices(decisions); logWorkout(uid,a.payload); }
     default -> throw bad();
    }
    db.update("UPDATE ai_actions SET status='APPLIED',applied_at=UTC_TIMESTAMP(6) WHERE id=? AND user_id=?",id,uid);
@@ -84,6 +84,27 @@ public class AiActionService {
    ObjectNode out=json.createObjectNode();out.put("status","APPLIED");out.put("message",message);return out;
   }catch(ResponseStatusException e){throw e;}
    catch(Exception e){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Không áp dụng được đề xuất AI.",e);}
+ }
+ private void rejectChoices(PlanBatchService.ChatDecisions choices){
+  if(choices!=null&&choices.choices()!=null&&!choices.choices().isEmpty())throw bad();
+ }
+ private void createPlansWithChoices(String uid,JsonNode items,PlanBatchService.ChatDecisions decisions){
+  if(decisions==null||decisions.choices()==null){createPlans(uid,items);return;}
+  if(decisions.choices().size()!=items.size())throw bad();
+  List<PlanBatchService.Choice> rows=new ArrayList<>();
+  for(int index=0;index<items.size();index++){
+   JsonNode original=items.get(index);
+   PlanBatchService.ChatChoice choice=decisions.choices().get(index);
+   if(choice==null||choice.date()==null||choice.decision()==null)throw bad();
+   LocalDate newDay;
+   try{newDay=LocalDate.parse(choice.date());}catch(Exception e){throw bad();}
+   // Other fields ALWAYS come from the persisted, server-validated AI action.
+   rows.add(new PlanBatchService.Choice(new com.fitlog.backend.dto.ApiDtos.PlanInput(
+    newDay,original.path("title").asText(),original.path("type").asText(),
+    original.path("minutes").asInt(),original.path("intensity").asText(),original.path("note").asText()),
+    choice.decision(),choice.expectedExistingId()));
+  }
+  planBatch.resolve(uid,rows);
  }
  private void createPlans(String uid,JsonNode items){
   Set<LocalDate> seen=new HashSet<>();

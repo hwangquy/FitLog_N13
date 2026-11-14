@@ -15,8 +15,8 @@ import java.util.*;
 
 @RestController @RequestMapping("/api/plans")
 public class PlannerController {
- private final WorkoutPlanRepository plans; private final WorkoutRepository workouts; private final UserRepository users; private final JdbcTemplate db;
- public PlannerController(WorkoutPlanRepository plans,WorkoutRepository workouts,UserRepository users,JdbcTemplate db) {this.plans=plans;this.workouts=workouts;this.users=users;this.db=db;}
+ private final WorkoutPlanRepository plans; private final WorkoutRepository workouts; private final UserRepository users; private final JdbcTemplate db; private final com.fitlog.backend.service.PlanBatchService batchService;
+ public PlannerController(WorkoutPlanRepository plans,WorkoutRepository workouts,UserRepository users,JdbcTemplate db,com.fitlog.backend.service.PlanBatchService batchService) {this.plans=plans;this.workouts=workouts;this.users=users;this.db=db;this.batchService=batchService;}
  private WorkoutPlan owned(String id,Authentication a) {return plans.findByIdAndUserId(id,CurrentUser.from(a).id()).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));}
  @GetMapping @Transactional(readOnly=true)
  public List<PlanView> list(@RequestParam LocalDate from,@RequestParam LocalDate to,Authentication a) {
@@ -49,6 +49,18 @@ public class PlannerController {
    out.add(PlanView.of(plans.save(p)));
   }
   return out;
+ }
+ // Kiểm tra xung đột, không ghi dữ liệu.
+ @PostMapping("/batch/preview")
+ public com.fitlog.backend.service.PlanBatchService.Preview previewBatch(
+     @Valid @RequestBody List<@Valid PlanInput> inputs,Authentication a){
+  return batchService.preview(CurrentUser.from(a).id(),inputs);
+ }
+ // Áp dụng giữ / thay / đổi ngày trong một transaction.
+ @PostMapping("/batch/resolve")
+ public com.fitlog.backend.service.PlanBatchService.Result resolveBatch(
+     @Valid @RequestBody com.fitlog.backend.service.PlanBatchService.ResolveRequest input,Authentication a){
+  return batchService.resolve(CurrentUser.from(a).id(),input.choices());
  }
  @PutMapping("/{id}") @Transactional
  public PlanView edit(@PathVariable String id,@Valid @RequestBody PlanInput input,Authentication a){WorkoutPlan p=owned(id,a);if(!p.status.equals("PLANNED")) throw new ResponseStatusException(HttpStatus.CONFLICT,"Không chỉnh sửa buổi đã hoàn thành.");apply(p,input);return PlanView.of(plans.save(p));}
