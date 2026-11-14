@@ -4,6 +4,7 @@ import com.fitlog.backend.entity.*;
 import com.fitlog.backend.repository.*;
 import com.fitlog.backend.security.CurrentUser;
 import jakarta.validation.Valid;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,8 +15,8 @@ import java.util.*;
 
 @RestController @RequestMapping("/api/plans")
 public class PlannerController {
- private final WorkoutPlanRepository plans; private final WorkoutRepository workouts; private final UserRepository users;
- public PlannerController(WorkoutPlanRepository plans,WorkoutRepository workouts,UserRepository users) {this.plans=plans;this.workouts=workouts;this.users=users;}
+ private final WorkoutPlanRepository plans; private final WorkoutRepository workouts; private final UserRepository users; private final JdbcTemplate db;
+ public PlannerController(WorkoutPlanRepository plans,WorkoutRepository workouts,UserRepository users,JdbcTemplate db) {this.plans=plans;this.workouts=workouts;this.users=users;this.db=db;}
  private WorkoutPlan owned(String id,Authentication a) {return plans.findByIdAndUserId(id,CurrentUser.from(a).id()).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND));}
  @GetMapping @Transactional(readOnly=true)
  public List<PlanView> list(@RequestParam LocalDate from,@RequestParam LocalDate to,Authentication a) {
@@ -28,6 +29,27 @@ public class PlannerController {
  }
  @PostMapping @ResponseStatus(HttpStatus.CREATED) @Transactional
  public PlanView add(@Valid @RequestBody PlanInput input,Authentication a){WorkoutPlan p=new WorkoutPlan();p.user=users.getReferenceById(CurrentUser.from(a).id());apply(p,input);return PlanView.of(plans.save(p));}
+ // Luu hang loat trong mot transaction: loi mot buoi -> rollback tat ca.
+ @PostMapping("/batch") @ResponseStatus(HttpStatus.CREATED) @Transactional
+ public List<PlanView> batch(@Valid @RequestBody List<@Valid PlanInput> inputs,Authentication a){
+  if(inputs==null||inputs.isEmpty()||inputs.size()>5)
+   throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Chỉ lưu 1-5 buổi một lần.");
+  String uid=CurrentUser.from(a).id();
+  // Lock per user to prevent concurrent duplicate batch confirmations.
+  db.queryForObject("SELECT id FROM users WHERE id=? FOR UPDATE",String.class,uid);
+  List<LocalDate> dates=new ArrayList<>();
+  List<PlanView> out=new ArrayList<>();
+  for(PlanInput i:inputs){
+   if(i.date().isBefore(LocalDate.now())||i.date().isAfter(LocalDate.now().plusDays(28))||dates.contains(i.date()))
+    throw new ResponseStatusException(HttpStatus.CONFLICT,"Ngày lịch trùng hoặc ngoài khoảng 28 ngày.");
+   dates.add(i.date());
+   Integer existing=db.queryForObject("SELECT COUNT(*) FROM workout_plans WHERE user_id=? AND date=? AND status='PLANNED'",Integer.class,uid,i.date());
+   if(existing!=null&&existing>0)throw new ResponseStatusException(HttpStatus.CONFLICT,"Đã có lịch vào ngày "+i.date());
+   WorkoutPlan p=new WorkoutPlan();p.user=users.getReferenceById(uid);apply(p,i);
+   out.add(PlanView.of(plans.save(p)));
+  }
+  return out;
+ }
  @PutMapping("/{id}") @Transactional
  public PlanView edit(@PathVariable String id,@Valid @RequestBody PlanInput input,Authentication a){WorkoutPlan p=owned(id,a);if(!p.status.equals("PLANNED")) throw new ResponseStatusException(HttpStatus.CONFLICT,"Không chỉnh sửa buổi đã hoàn thành.");apply(p,input);return PlanView.of(plans.save(p));}
  @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT) @Transactional

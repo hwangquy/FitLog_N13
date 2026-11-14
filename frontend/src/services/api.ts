@@ -96,6 +96,10 @@ export async function pingApi(): Promise<number> {
 
 
 export const plannerApi = {
+  async createBatch(inputs: WorkoutPlanInput[]): Promise<WorkoutPlan[]> {
+    const r = await http.post<WorkoutPlan[]>('/plans/batch', inputs);
+    return r.data;
+  },
   async list(from: string, to: string): Promise<WorkoutPlan[]> {
     const r = await http.get<WorkoutPlan[]>(`/plans${toQuery({ from, to })}`);
     return r.data;

@@ -8,7 +8,7 @@ import { routeDistanceKm } from '../../src/features/location/route';
 import { RoutePreview } from '../../src/components/workouts/RoutePreview';
 import { PrivateWorkoutImage } from '../../src/components/workouts/PrivateWorkoutImage';
 import { uploadWorkoutImage } from '../../src/services/media';
-import { AppButton, AppInput, AppText, Card, Chip, ErrorState, LoadingState, Screen, ScreenHeader } from '../../src/components/ui';
+
 import { offerOpenSettings, showError } from '../../src/components/ui/dialogs';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { workoutsApi } from '../../src/services/api';
@@ -217,12 +217,31 @@ export default function WorkoutFormScreen() {
             </ScrollView>
           </View>
 
-          <View style={{ gap: 8 }}>
-            <DatePickerField label="Ngày tập" required value={date} onChange={setDate} maxDate={today} error={errors.date} />            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Chip label="Hôm nay" selected={date === today} onPress={() => setDate(today)} />
-              <Chip label="Hôm qua" selected={date === addDays(today, -1)} onPress={() => setDate(addDays(today, -1))} />
-            </View>
-          </View>
+         
+<View style={{ gap: 8 }}>
+  <DatePickerField
+    label="Ngày tập"
+    required
+    value={date}
+    onChange={setDate}
+    maxDate={today}
+    error={errors.date}
+  />
+
+  <View style={{ flexDirection: 'row', gap: 8 }}>
+    <Chip
+      label="Hôm nay"
+      selected={date === today}
+      onPress={() => setDate(today)}
+    />
+    <Chip
+      label="Hôm qua"
+      selected={date === addDays(today, -1)}
+      onPress={() => setDate(addDays(today, -1))}
+    />
+  </View>
+</View>
+
 
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <View style={{ flex: 1 }}>

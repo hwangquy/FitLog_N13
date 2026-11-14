@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { AppButton, AppText, Card, Chip, EmptyState, ErrorState, LoadingState, Screen, ScreenHeader, SectionTitle } from '../../src/components/ui';
 import { useAppDispatch, useAppSelector } from '../../src/store/hooks';
@@ -19,7 +19,7 @@ export default function PlannerScreen() {
  const end=addDays(week,6);
  const days=useMemo(()=>Array.from({length:7},(_,i)=>addDays(week,i)),[week]);
  const reload=useCallback(()=>{void dispatch(fetchPlans({from:week,to:end}));},[dispatch,week,end]);
- useEffect(()=>{reload();},[reload]);
+ useFocusEffect(useCallback(()=>{reload();},[reload]));
  const onComplete=async(id:string)=>{
   setBusy(id);
   try { await dispatch(completePlan(id)).unwrap(); await dispatch(fetchAllWorkouts()); }

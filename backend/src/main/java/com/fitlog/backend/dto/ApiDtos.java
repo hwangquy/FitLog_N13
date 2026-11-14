@@ -10,9 +10,27 @@ import java.time.*;
 /** Request DTOs never accept an owner ID. The server gets identity from Spring Security. */
 public final class ApiDtos {
  private ApiDtos() {}
- public record PublicUser(String id,String name,String email,String role) {
-  public static PublicUser of(User u) { return new PublicUser(u.id,u.name,u.email,u.role.toLowerCase()); }
- }
+
+public record PublicUser(
+    String id,
+    String name,
+    String email,
+    String role,
+    String avatar
+) {
+    public static PublicUser of(User u) {
+        return new PublicUser(
+            u.id,
+            u.name,
+            u.email,
+            u.role.toLowerCase(),
+            u.avatar
+        );
+    }
+}
+
+public record UpdateAvatarRequest(String avatar) {}
+
  public record RegisterRequest(@NotBlank @Size(min=2,max=100) String name,
     @NotBlank @Email @Size(max=254) String email,
     @NotBlank @Size(min=10,max=72) String password) {}

@@ -69,7 +69,14 @@ export default function WorkoutsScreen() {
         keyboardDismissMode="on-drag"
         ListHeaderComponent={header}
         renderItem={({ item, index }) => <WorkoutCard workout={item} index={index}
-          onPress={() => router.push({ pathname: '/workout/[id]', params: { id: item.id } })}
+          onPress={() => {
+  console.log('OPEN WORKOUT:', item.id);
+
+  router.push({
+    pathname: '/workout/[id]',
+    params: { id: item.id }
+  });
+}}
           onEdit={() => router.push({ pathname: '/workout/form', params: { id: item.id } })}
           onDelete={() => confirmDestructive({ title: 'Xóa buổi tập', message: `Xóa ${item.title}?`, onConfirm: () => {
             void dispatch(deleteWorkout(item.id)).unwrap().catch(e => showError('Không xóa được', errorMessage(e)));

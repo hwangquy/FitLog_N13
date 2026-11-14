@@ -1,0 +1,9 @@
+-- Tu soan de demo RAG; nhung thong tin nay la huong dan the thao pho thong.
+USE fitlog_db;
+INSERT IGNORE INTO ai_knowledge(id,title,category,content,source) VALUES
+('11111111-1111-4111-8111-111111111101','Squat không dụng cụ','Gym','Đứng hai chân rộng ngang vai, giữ lưng trung lập. Hạ người như đang ngồi ghế, đầu gối theo hướng mũi chân; đứng lên có kiểm soát. Người mới tập có thể squat xuống ghế. Dừng lại nếu đau khớp hoặc chóng mặt.','FitLog - kiến thức nhóm tự biên soạn'),
+('11111111-1111-4111-8111-111111111102','Chống đẩy cho người mới','Gym','Chống tay lên tường hoặc bàn chắc chắn, siết bụng nhẹ và hạ người có kiểm soát. Khi đã quen có thể chống đẩy trên sàn. Không cố tăng số lần khi kỹ thuật xuống.','FitLog - kiến thức nhóm tự biên soạn'),
+('11111111-1111-4111-8111-111111111103','Đi bộ tăng sức bền','Đi bộ','Khởi đầu 15-30 phút ở nhịp có thể nói chuyện thoải mái. Tăng dần thời lượng phù hợp khả năng, nghỉ nếu khó chịu. Người mới tập ưu tiên tính đều đặn hơn tốc độ.','FitLog - kiến thức nhóm tự biên soạn'),
+('11111111-1111-4111-8111-111111111104','Khởi động trước buổi Gym','Gym','Khởi động 5-10 phút bằng đi bộ nhẹ và động tác linh hoạt khớp. Thực hiện 1-2 hiệp làm quen với mức tải thấp trước bài chính. Không nên kéo giãn quá mạnh khi cơ đang lạnh.','FitLog - kiến thức nhóm tự biên soạn'),
+('11111111-1111-4111-8111-111111111105','Giãn cơ phục hồi','Yoga','Sau tập, giảm nhịp vận động bằng đi bộ chậm và các động tác giãn cơ nhẹ nhàng. Giữ nhịp thở đều; tránh giật hoặc cố ép biên độ. Khi có cơn đau bất thường, nên ngừng tập và hỏi chuyên gia.','FitLog - kiến thức nhóm tự biên soạn'),
+('11111111-1111-4111-8111-111111111106','Nguyên tắc nghỉ giữa các buổi tập','Phục hồi','Nên sắp xếp ngày nghỉ hoặc buổi vận động nhẹ giữa các buổi tập nặng cùng nhóm cơ. Nếu tự báo mức mệt 4-5/5, giảm cường độ hoặc ưu tiên nghỉ. Uống đủ nước và ngủ đủ giấc.','FitLog - kiến thức nhóm tự biên soạn');

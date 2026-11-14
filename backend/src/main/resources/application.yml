@@ -34,4 +34,8 @@ fitlog:
   ai:
     api-key: ${GEMINI_API_KEY:}
     model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
-    base-url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+    base-url: ${AI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/chat/completions}
+    ollama-embed-url: ${OLLAMA_EMBED_URL:http://localhost:11434/api/embed}
+    embedding-model: ${EMBEDDING_MODEL:bge-m3}
+    # BGE-M3 vectors are stored in MariaDB VECTOR(1024), not Qdrant.
+    min-vector-similarity: ${AI_MIN_VECTOR_SIMILARITY:0.45}

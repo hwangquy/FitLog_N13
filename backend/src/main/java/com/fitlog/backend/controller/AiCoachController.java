@@ -6,12 +6,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -27,6 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fitlog.backend.security.CurrentUser;
+import com.fitlog.backend.service.AiQuotaService;
+import com.fitlog.backend.service.AiDataService;
 
 @RestController
 @RequestMapping("/api/coach")
@@ -36,24 +34,28 @@ public class AiCoachController {
     private final String model;
     private final String baseUrl;
     private final ObjectMapper mapper;
+    private final AiQuotaService quota;
+    private final AiDataService data;
 
     private final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    private final ConcurrentHashMap<String, AtomicInteger> daily =
-            new ConcurrentHashMap<>();
 
     public AiCoachController(
             @Value("${fitlog.ai.api-key:}") String key,
             @Value("${fitlog.ai.model:gemini-2.5-flash}") String model,
             @Value("${fitlog.ai.base-url}") String baseUrl,
-            ObjectMapper mapper
+            ObjectMapper mapper,
+            AiQuotaService quota,
+            AiDataService data
     ) {
         this.key = key;
         this.model = model;
         this.baseUrl = baseUrl;
         this.mapper = mapper;
+        this.quota = quota;
+        this.data = data;
     }
 
     @PostMapping("/plan")
@@ -98,20 +100,11 @@ public class AiCoachController {
             );
         }
 
-        // 4. Giới hạn 10 yêu cầu/ngày/người dùng
-        String stamp = uid + ":" + LocalDate.now(ZoneOffset.UTC);
-
-        AtomicInteger counter = daily.computeIfAbsent(
-                stamp,
-                k -> new AtomicInteger()
-        );
-
-        if (counter.incrementAndGet() > 10) {
-            throw new ResponseStatusException(
-                    HttpStatus.TOO_MANY_REQUESTS,
-                    "Bạn đã sử dụng hết 10 lượt AI hôm nay."
-            );
+        // Quota luu MariaDB: khong con ConcurrentHashMap/AtomicInteger.
+        if (!data.hasConsent(uid)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Chưa đồng ý gửi dữ liệu cho AI.");
         }
+        quota.useOne(uid);
 
         // 5. Chỉ gửi dữ liệu thống kê được cho phép
         ObjectNode safe = mapper.createObjectNode();

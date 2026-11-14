@@ -1,12 +1,18 @@
 package com.fitlog.backend.entity;
-import jakarta.persistence.*;
+import java.time.Instant;
 import java.util.UUID;
-import java.time.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity @Table(name="users")
 public class User {
  @Id public String id = UUID.randomUUID().toString();
  @Column(nullable=false,length=100) public String name;
+ @Column(name = "avatar", length = 255)
+public String avatar;
  @Column(nullable=false,unique=true,length=254) public String email;
  @Column(name="password_hash",nullable=false,length=100) public String passwordHash;
  @Column(nullable=false,length=20) public String role = "USER";

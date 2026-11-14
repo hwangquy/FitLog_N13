@@ -1,8 +1,9 @@
 
 import { Tabs } from 'expo-router';
-import type { ColorValue } from 'react-native';
+import { View, type ColorValue } from 'react-native';
 
 import { Icon } from '../../src/components/ui';
+import CoachChatCard from '../../src/components/coach/CoachChatCard';
 import type { IconName } from '../../src/components/ui';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 
@@ -32,6 +33,7 @@ export default function TabsLayout() {
   const { colors } = useAppTheme();
 
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -72,5 +74,7 @@ export default function TabsLayout() {
         options={tab('Cá nhân', 'person', 'person-outline')}
       />
     </Tabs>
+    <CoachChatCard />
+    </View>
   );
 }

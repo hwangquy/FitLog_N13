@@ -1,6 +1,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
+import {router} from 'expo-router';
 import {RefreshControl,View} from 'react-native';
-import {AdminScreen,Bars,C,Kpi,Panel,State} from '../../src/components/admin/AdminUI';
+import {AdminScreen,Bars,C,Kpi,Panel,State,Action} from '../../src/components/admin/AdminUI';
 import {adminApi,AdminSummary} from '../../src/services/admin';
 export default function AdminHome(){
  const [data,setData]=useState<AdminSummary|null>(null),[error,setError]=useState<string|null>(null),[busy,setBusy]=useState(true);
@@ -8,6 +9,7 @@ export default function AdminHome(){
  useEffect(()=>{void load();},[load]);
  return <AdminScreen title="Tổng quan hệ thống" subtitle="Chỉ số tổng hợp của FitLog · Không hiển thị nhật ký tập luyện cá nhân">
  <State loading={busy&&!data} error={error} onRetry={()=>void load()}/>
+ <Panel title="AI Knowledge / RAG"><Action label="Quản lý kiến thức AI" onPress={()=>router.push("/admin/knowledge")}/></Panel>
  {data?<>
  <View style={{flexDirection:'row',flexWrap:'wrap',gap:10}}>
   <Kpi label="Tài khoản" value={data.totalUsers} sub={`Đang hoạt động: ${data.activeUsers}`}/>

@@ -1,0 +1,4 @@
+USE fitlog_db;
+
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS avatar VARCHAR(255) NULL;

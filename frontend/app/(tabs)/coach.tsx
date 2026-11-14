@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { coachChatApi } from '../../src/services/coachChat';
 import { router } from 'expo-router';
 import { View } from 'react-native';
 import { showConfirmDialog } from '../../src/utils/alert';
@@ -37,39 +38,39 @@ export default function CoachScreen() {
   const applyToPlanner = async (items: { title: string; minutes: number; notes: string; type?: WorkoutType }[]) => {
     if (applying || !items.length) return;
     setApplying(true);
-    let saved = 0;
     try {
       const start = addDays(today, 1);
-      for (const [i, item] of items.entries()) {
+      const inputs: WorkoutPlanInput[] = items.map((item, i) => {
         const type: WorkoutType = item.type ?? (
           /yoga|giãn cơ/i.test(item.title) ? 'Yoga' :
           /gym|sức mạnh|tạ/i.test(item.title) ? 'Gym' :
           /đạp xe/i.test(item.title) ? 'Đạp xe' :
           /chạy/i.test(item.title) ? 'Chạy bộ' : 'Đi bộ'
         );
-        const plan: WorkoutPlanInput = {
-          date: addDays(start, Math.floor(i * 7 / items.length)),
-          title: item.title, type, minutes: item.minutes,
-          intensity: 'nhẹ', note: item.notes
-        };
-        await plannerApi.create(plan);
-        saved += 1;
-      }
+        return { date: addDays(start, Math.floor(i * 7 / items.length)),
+          title: item.title, type, minutes: item.minutes, intensity: 'nhẹ', note: item.notes };
+      });
+      await plannerApi.createBatch(inputs);
       router.push('/planner');
     } catch (e) {
-      showError('Không áp dụng được toàn bộ lịch', `Đã lưu ${saved}/${items.length} buổi. ${errorMessage(e)}`);
+      showError('Không áp dụng được lịch', errorMessage(e));
     } finally { setApplying(false); }
   };
 
   const askAi = () => {
     if (consent) {
-      void runAi();
+      void coachChatApi.setConsent(true).then(() => runAi())
+        .catch(e => showError('Không lưu được sự đồng ý', errorMessage(e)));
       return;
     }
     showConfirmDialog(
       'Gửi số liệu tới AI?',
       'FitLog chỉ gửi thống kê tổng hợp và mục tiêu. Không gửi tên, ghi chú, vị trí, ảnh hay tuyến GPS. Bạn có thể rút lại sự đồng ý ở Cá nhân.',
-      () => { dispatch(setAiConsent(true)); void runAi(); },
+      () => {
+        void coachChatApi.setConsent(true).then(() => {
+          dispatch(setAiConsent(true)); void runAi();
+        }).catch(e => showError('Không lưu được sự đồng ý', errorMessage(e)));
+      },
       'Đồng ý', 'Không'
     );
   };
