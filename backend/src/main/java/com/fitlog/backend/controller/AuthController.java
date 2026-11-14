@@ -1,4 +1,5 @@
 package com.fitlog.backend.controller;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -13,10 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.fitlog.backend.dto.ApiDtos.AuthResponse;
+import com.fitlog.backend.dto.ApiDtos.ForgotPasswordRequest;
 import com.fitlog.backend.dto.ApiDtos.LoginRequest;
 import com.fitlog.backend.dto.ApiDtos.PublicUser;
 import com.fitlog.backend.dto.ApiDtos.RegisterRequest;
+import com.fitlog.backend.dto.ApiDtos.ResetPasswordRequest;
 import com.fitlog.backend.dto.ApiDtos.UpdateAvatarRequest;
+import com.fitlog.backend.dto.ApiDtos.VerifyOtpRequest;
 import com.fitlog.backend.repository.MediaFileRepository;
 import com.fitlog.backend.repository.UserRepository;
 import com.fitlog.backend.security.CurrentUser;
@@ -24,10 +28,15 @@ import com.fitlog.backend.security.TokenService;
 import com.fitlog.backend.service.AuthService;
 
 import jakarta.validation.Valid;
-@RestController @RequestMapping("/api/auth")
+
+@RestController
+@RequestMapping("/api/auth")
 public class AuthController {
- private final AuthService auth;private final TokenService tokens;private final UserRepository users;
+ private final AuthService auth;
+ private final TokenService tokens;
+ private final UserRepository users;
  private final MediaFileRepository mediaFiles;
+
  public AuthController(
     AuthService auth,
     TokenService tokens,
@@ -39,15 +48,46 @@ public class AuthController {
     this.users = users;
     this.mediaFiles = mediaFiles;
 }
- @PostMapping("/register") @ResponseStatus(HttpStatus.CREATED)
- public AuthResponse register(@Valid @RequestBody RegisterRequest r) { return auth.register(r); }
- @PostMapping("/login") public AuthResponse login(@Valid @RequestBody LoginRequest r) { return auth.login(r); }
- @PostMapping("/logout") public ResponseEntity<Void> logout(Authentication a) {
-  tokens.revoke(CurrentUser.from(a).sessionId());return ResponseEntity.noContent().build();
+
+ @PostMapping("/register")
+ @ResponseStatus(HttpStatus.CREATED)
+ public AuthResponse register(@Valid @RequestBody RegisterRequest r) {
+  return auth.register(r);
  }
- @GetMapping("/me") public PublicUser me(Authentication a) {
-  var p=CurrentUser.from(a);
-  return PublicUser.of(users.findById(p.id()).orElseThrow(()->new ResponseStatusException(HttpStatus.UNAUTHORIZED)));
+
+ @PostMapping("/login")
+ public AuthResponse login(@Valid @RequestBody LoginRequest r) {
+  return auth.login(r);
+ }
+
+ @PostMapping("/forgot-password")
+ public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest r) {
+  auth.sendForgotPasswordOtp(r);
+  return ResponseEntity.noContent().build();
+ }
+
+ @PostMapping("/verify-otp")
+ public ResponseEntity<Void> verifyOtp(@Valid @RequestBody VerifyOtpRequest r) {
+  auth.verifyOtp(r);
+  return ResponseEntity.noContent().build();
+ }
+
+ @PostMapping("/reset-password")
+ public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest r) {
+  auth.resetPassword(r);
+  return ResponseEntity.noContent().build();
+ }
+
+ @PostMapping("/logout")
+ public ResponseEntity<Void> logout(Authentication a) {
+  tokens.revoke(CurrentUser.from(a).sessionId());
+  return ResponseEntity.noContent().build();
+ }
+
+ @GetMapping("/me")
+ public PublicUser me(Authentication a) {
+  var p = CurrentUser.from(a);
+  return PublicUser.of(users.findById(p.id()).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED)));
  }
 
 @PutMapping("/avatar")
