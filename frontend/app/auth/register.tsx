@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,7 +17,7 @@ import {
   View,
 } from "tamagui";
 import { Ionicons } from "@expo/vector-icons";
-import { showError } from '../../src/components/ui/dialogs';
+import { showError } from "../../src/components/ui/dialogs";
 import { authService } from "../../services/authService";
 import { useRouter } from "expo-router";
 
@@ -57,7 +58,23 @@ export default function RegisterScreen() {
     try {
       setLoading(true);
       await authService.register(fullName.trim(), email.trim(), password);
-      // Backend cấp phiên ngay khi tạo tài khoản; Bootstrap tự chuyển về màn chính.
+
+      if (Platform.OS === "web") {
+        window.alert("Đăng ký thành công! Vui lòng đăng nhập.");
+        router.replace("/auth/login" as any);
+      } else {
+        Alert.alert(
+          "Thành công",
+          "Đăng ký tài khoản thành công! Vui lòng đăng nhập.",
+          [
+            {
+              text: "Đăng nhập ngay",
+              onPress: () => router.replace("/auth/login" as any),
+            },
+          ],
+          { cancelable: false },
+        );
+      }
     } catch (error: any) {
       showError("Lỗi đăng ký", error.message || "Đã có lỗi xảy ra.");
     } finally {

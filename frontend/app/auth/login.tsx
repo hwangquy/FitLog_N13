@@ -16,7 +16,7 @@ import {
   View,
 } from "tamagui";
 import { Ionicons } from "@expo/vector-icons";
-import { showError } from '../../src/components/ui/dialogs';
+import { showError } from "../../src/components/ui/dialogs";
 import { authService } from "../../services/authService";
 import { useRouter } from "expo-router";
 
@@ -220,7 +220,7 @@ export default function LoginScreen() {
                       fontWeight="600"
                       cursor="pointer"
                       onPress={() =>
-                        showError("Thông báo", "Tính năng đang phát triển!")
+                        router.push("/auth/forgot-password" as any)
                       }
                     >
                       Quên?

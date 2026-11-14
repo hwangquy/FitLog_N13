@@ -1,4 +1,5 @@
 package com.fitlog.backend.dto;
+
 import com.fitlog.backend.entity.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -35,6 +36,14 @@ public record UpdateAvatarRequest(String avatar) {}
     @NotBlank @Email @Size(max=254) String email,
     @NotBlank @Size(min=10,max=72) String password) {}
  public record LoginRequest(@NotBlank String email,@NotBlank String password) {}
+ public record ForgotPasswordRequest(@NotBlank @Email @Size(max=254) String email) {}
+ public record VerifyOtpRequest(
+    @NotBlank @Email @Size(max=254) String email,
+    @NotBlank @Pattern(regexp="^\\d{6}$", message="Mã OTP phải gồm 6 chữ số.") String otp) {}
+ public record ResetPasswordRequest(
+    @NotBlank @Email @Size(max=254) String email,
+    @NotBlank @Pattern(regexp="^\\d{6}$", message="Mã OTP phải gồm 6 chữ số.") String otp,
+    @NotBlank @Size(min=10,max=72) String newPassword) {}
  public record AuthResponse(String accessToken,String tokenType,PublicUser user) {}
  public record Coords(@NotNull @DecimalMin("-90") @DecimalMax("90") Double latitude,
                       @NotNull @DecimalMin("-180") @DecimalMax("180") Double longitude) {}
