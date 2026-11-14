@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {RefreshControl,View} from 'react-native';
-import {AdminScreen,Bars,Kpi,Panel,State} from '../../src/components/admin/AdminUI';
+import {AdminScreen,Bars,C,Kpi,Panel,State} from '../../src/components/admin/AdminUI';
 import {adminApi,AdminSummary} from '../../src/services/admin';
 export default function AdminHome(){
  const [data,setData]=useState<AdminSummary|null>(null),[error,setError]=useState<string|null>(null),[busy,setBusy]=useState(true);

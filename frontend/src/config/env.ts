@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 const API_PORT = 8080;
+
 export function resolveApiBaseUrl(): string {
   const custom = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (custom) return custom.replace(/\/+$/, '');

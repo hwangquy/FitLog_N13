@@ -33,14 +33,6 @@ export default function CoachScreen() {
   const plan = useMemo(() => buildPlan(analysis, prefs), [analysis, prefs]);
   const aiReady = isAiConfigured();
 
-  const runAi = async () => {
-    setAi({ status: 'loading' });
-    try {
-      setAi({ status: 'done', plan: await requestAiPlan(buildAiPayload(all, prefs, today)) });
-    } catch (e) {
-      setAi({ status: 'error', error: errorMessage(e) });
-    }
-  };
 
   const applyToPlanner = async (items: { title: string; minutes: number; notes: string; type?: WorkoutType }[]) => {
     if (applying || !items.length) return;
@@ -81,7 +73,15 @@ export default function CoachScreen() {
       'Đồng ý', 'Không'
     );
   };
-
+  
+  const runAi = async () => {
+    setAi({ status: 'loading' });
+    try {
+      setAi({ status: 'done', plan: await requestAiPlan(buildAiPayload(all, prefs, today)) });
+    } catch (e) {
+      setAi({ status: 'error', error: errorMessage(e) });
+    }
+  };
   return (
     <Screen>
       <ScreenHeader eyebrow="Huấn luyện" title="AI Coach" subtitle="Gợi ý dựa trên lịch sử luyện tập thật của bạn" />

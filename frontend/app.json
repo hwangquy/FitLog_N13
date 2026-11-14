@@ -7,12 +7,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "plugins": [
-      [
-        "expo-router",
-        {
-          "root": "frontend/app"
-        }
-      ],
+      "expo-router",
       [
         "expo-location",
         {

@@ -1,4 +1,4 @@
-import { http } from './client';
+import { http } from './api';
 export type Metric = { label: string; count: number };
 export type DayMetric = { day: string; count: number };
 export type AdminSummary = {

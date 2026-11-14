@@ -3,8 +3,8 @@ import type { ThemeMode } from '../theme/colors';
 
 export type SettingsState = { themeMode: ThemeMode; aiConsent: boolean; hydrated: boolean };
 const initialState: SettingsState = { themeMode: 'system', aiConsent: false, hydrated: false };
-
 const isMode = (v: unknown): v is ThemeMode => v === 'system' || v === 'light' || v === 'dark';
+
 
 const slice = createSlice({
   name: 'settings',
