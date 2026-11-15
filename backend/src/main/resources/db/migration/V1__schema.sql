@@ -89,6 +89,7 @@ CREATE TABLE admin_audit_logs (
   actor_id VARCHAR(36) NULL,
   action VARCHAR(40) NOT NULL,
   target_id VARCHAR(36) NULL,
+  reason VARCHAR(500) NULL,
   created_at DATETIME(6) NOT NULL,
   CONSTRAINT fk_audit_actor FOREIGN KEY(actor_id) REFERENCES users(id) ON DELETE SET NULL
 );

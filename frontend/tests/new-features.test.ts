@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { distanceKm, routeDistanceKm } from '../src/features/location/route';
 import { calculateStreak } from '../src/features/stats/streak';
+import { buildAdminChartAxis } from '../src/utils/adminChart';
 import type { Workout } from '../src/types';
 const workout = (date: string) => ({ id: date, date, title: 'Chạy bộ', type: 'Chạy bộ', duration: 30, distance: 0 }) as Workout;
 test('GPS distance for identical points is 0', () => {
@@ -17,4 +18,8 @@ test('streak includes today and preceding consecutive days', () => {
   assert.equal(calculateStreak([workout('2026-11-03'),workout('2026-11-02'),workout('2026-10-31')],'2026-11-03'),2);
   assert.equal(calculateStreak([workout('2026-11-02'),workout('2026-11-01')],'2026-11-03'),2);
   assert.equal(calculateStreak([workout('2026-10-29')],'2026-11-03'),0);
+});
+test('admin chart axis keeps small integer ticks distinct', () => {
+  assert.deepEqual(buildAdminChartAxis(2),{max:2,ticks:[0,1,2]});
+  assert.deepEqual(buildAdminChartAxis(13),{max:16,ticks:[0,4,8,12,16]});
 });

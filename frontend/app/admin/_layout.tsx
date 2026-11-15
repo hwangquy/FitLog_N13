@@ -37,9 +37,18 @@ export default function AdminLayout() {
         tabBarStyle: {
           backgroundColor: C.panel,
           borderTopColor: C.stroke,
+          width: '100%',
+          paddingHorizontal: 2,
+        },
+        tabBarItemStyle: {
+          flex: 1,
+          minWidth: 0,
+          paddingHorizontal: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 10,
+          fontSize: 9,
+          flexShrink: 1,
+          textAlign: 'center',
         },
       }}
     >

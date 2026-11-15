@@ -65,6 +65,8 @@ Chạy các file theo **đúng thứ tự**:
 
 **Sao lưu database trước.** Bỏ qua `V1__schema.sql`; chỉ chạy những script bổ sung chưa áp dụng (avatar, AI và vector). Với `ai_knowledge_seed.sql`, kiểm tra dữ liệu đã có để tránh thêm trùng nội dung mẫu.
 
+Nếu backend báo `Schema-validation: missing column [reason] in table [admin_audit_logs]`, chạy `backend/src/main/resources/db/migration/admin_audit_reason.sql` trên database `fitlog_db`, rồi khởi động lại backend. Script chỉ thêm cột còn thiếu, không xóa hoặc sửa dữ liệu hiện có. Database mới đã có cột này trong `V1__schema.sql`.
+
 Không xóa database cũ và không chạy `V1__schema.sql` lần nữa.
 
 ### 3.3. Tạo tài khoản kết nối database
