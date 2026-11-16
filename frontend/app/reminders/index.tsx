@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, RefreshControl } from 'react-native';
 import { ReminderCard } from '../../src/components/reminders/ReminderCard';
-import { AppText, Card, EmptyState, ErrorState, IconButton, LoadingState, Screen, ScreenHeader } from '../../src/components/ui';
+import { EmptyState, ErrorState, IconButton, LoadingState, Screen, ScreenHeader } from '../../src/components/ui';
 import { confirmDestructive, offerOpenSettings, showError } from '../../src/components/ui/dialogs';
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { ensureNotificationPermission } from '../../src/services/notifications';
@@ -54,12 +54,7 @@ export default function RemindersScreen() {
     });
 
   const header = (
-    <>
-      <ScreenHeader back title="Nhắc lịch tập" subtitle="Thông báo được lên lịch ngay trên thiết bị" right={<IconButton icon="add" tone="brand" label="Thêm nhắc nhở" onPress={() => router.push('/reminders/form')} />} />
-      <Card tone="soft">
-        <AppText size="sm" tone="muted">Nhắc nhở lưu trên máy chủ, còn thông báo chỉ hoạt động trên máy bạn đã cấp quyền. Huy hiệu dưới mỗi nhắc nhở cho biết trạng thái thật.</AppText>
-      </Card>
-    </>
+    <ScreenHeader back title="Nhắc lịch tập" subtitle="Thông báo được lên lịch ngay trên thiết bị" right={<IconButton icon="add" tone="brand" label="Thêm nhắc nhở" onPress={() => router.push('/reminders/form')} />} />
   );
 
   return (

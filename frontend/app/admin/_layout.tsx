@@ -77,8 +77,6 @@ export default function AdminLayout() {
         options={nav('Tài khoản', 'shield-checkmark-outline')}
       />
 
-      <Tabs.Screen name="knowledge" options={{ href: null }} />
-
       <Tabs.Screen
         name="dashboard"
         options={{ href: null }}

@@ -1,7 +1,6 @@
 import React,{useCallback,useEffect,useState} from 'react';
-import {router} from 'expo-router';
 import {View} from 'react-native';
-import {AdminScreen,Bars,C,Kpi,Panel,State,Action} from '../../src/components/admin/AdminUI';
+import {AdminScreen,Bars,C,Kpi,Panel,State} from '../../src/components/admin/AdminUI';
 import {adminApi,AdminSummary,TrackingSummary} from '../../src/services/admin';
 export default function AdminHome(){
  const [data,setData]=useState<AdminSummary|null>(null),[error,setError]=useState<string|null>(null),[busy,setBusy]=useState(true);
@@ -28,13 +27,6 @@ export default function AdminHome(){
    <Kpi label="Lịch tập sắp tới (7 ngày)" value={data.upcomingPlans7d}
     sub={data.scheduledPlans7d>0?`Hoàn thành 7 ngày qua: ${data.completedPlans7d}/${data.scheduledPlans7d}`:'Chưa có lịch trong 7 ngày qua'}/>
   </View>
- </Panel>
- <Panel title="AI Coach">
-  <View style={{flexDirection:'row',flexWrap:'wrap',gap:10}}>
-   <Kpi label="Tài liệu AI" value={data.aiKnowledgeCount??'—'} sub="Trong kho kiến thức"/>
-   <Kpi label="Tin nhắn AI Coach" value={data.aiChatMessageCount??'—'} sub="Tổng tin nhắn đã lưu"/>
-  </View>
-  <Action label="Quản lý kiến thức AI" onPress={()=>router.push("/admin/knowledge")}/>
  </Panel>
  <Bars data={data.dailyWorkouts} labelKey="day" title="Buổi tập theo ngày · 7 ngày"/>
  <Bars data={data.workoutTypes} title="Loại hình luyện tập"/>

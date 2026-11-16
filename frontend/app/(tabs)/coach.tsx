@@ -201,8 +201,18 @@ export default function PlanScreen() {
   const previous = dashboard.previous7Days.sessions;
   const difference = current - previous;
   const completion = Math.min(100, Math.round(100 * current / Math.max(1, profile.daysPerWeek)));
+  const profileSaved =
+    profile.goal === dashboard.profile.goal &&
+    profile.level === dashboard.profile.level &&
+    profile.daysPerWeek === dashboard.profile.daysPerWeek &&
+    profile.minutesPerSession === dashboard.profile.minutesPerSession &&
+    profile.equipment === dashboard.profile.equipment &&
+    profile.preferences === dashboard.profile.preferences;
   const latest = dashboard.latestCheckin;
   const todayCheckin = latest && new Date(latest.createdAt).toDateString() === new Date().toDateString();
+  const checkinSaved = Boolean(
+    todayCheckin && latest?.fatigue === fatigue && latest?.soreness === soreness,
+  );
   const whyRule = todayCheckin && (latest.fatigue >= 4 || latest.soreness >= 4)
     ? `Hôm nay bạn báo mức mệt ${latest.fatigue}/5 và đau cơ ${latest.soreness}/5; lịch quy tắc được giảm về vận động phục hồi nhẹ.`
     : !analysis.hasData
@@ -254,7 +264,9 @@ export default function PlanScreen() {
           maxLength={500} multiline style={{ minHeight: 54, color: colors.color, padding: 12, borderRadius: 12,
             borderWidth: 1, borderColor: colors.borderColor, backgroundColor: colors.background }} />
         <AppText tone="muted" size="xs">Thay đổi sẽ ảnh hưởng đến các đề xuất tiếp theo. Hồ sơ chỉ chỉnh tại trang này.</AppText>
-        <AppButton label="Lưu hồ sơ luyện tập" icon="save-outline" loading={saving} disabled={saving}
+        <AppButton label={profileSaved ? 'Đã lưu hồ sơ luyện tập' : 'Lưu hồ sơ luyện tập'}
+          variant={profileSaved ? 'lime' : 'primary'}
+          icon={profileSaved ? 'checkmark-circle' : 'save-outline'} loading={saving} disabled={saving}
           onPress={() => void saveProfile()} />
       </Card>
 
@@ -269,7 +281,9 @@ export default function PlanScreen() {
           {sessionChoices.map(n => <Chip key={n} label={`${n}`} selected={soreness === n} onPress={() => setSoreness(n)} />)}
         </View>
         {dashboard.latestCheckin ? <AppText tone="muted" size="xs">Lần ghi nhận gần nhất: {new Date(dashboard.latestCheckin.createdAt).toLocaleString('vi-VN')}</AppText> : null}
-        <AppButton label="Lưu tình trạng hôm nay" variant="secondary" icon="heart-outline"
+        <AppButton label={checkinSaved ? 'Đã lưu tình trạng hôm nay' : 'Lưu tình trạng hôm nay'}
+          variant={checkinSaved ? 'danger' : 'secondary'}
+          icon={checkinSaved ? 'heart' : 'heart-outline'}
           loading={saving} disabled={saving} onPress={() => void saveCheckin()} />
       </Card>
 
